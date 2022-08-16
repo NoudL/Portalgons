@@ -25,28 +25,28 @@ struct DrawableEdge {
 class Fragment {
 public:
 	Polygon p;
-	std::list<PortalSide> portals;
+	std::vector<PortalSide> portals;
 
 	Fragment() {
 		p = Polygon();
 	}
 
-	void Fragment::createFragment();
-	std::list < DrawableEdge > draw();
+	std::vector < DrawableEdge > draw();
 };
-
 
 
 class Portalgon {
 public:
-	std::list <Fragment> fragments;
+	std::vector <Fragment> fragments;
 
-	Portalgon(std::list<Fragment> f) {
+	Portalgon(std::vector<Fragment> f) {
 		fragments = f;
 	}
 
-	std::list < DrawableEdge > draw();
+	std::vector < DrawableEdge > draw();
 };
+
+Portalgon createPortalgon();
 
 
 class PortalSide {
@@ -65,12 +65,12 @@ public:
 		this->parent = parent;
 		this->exit = exit;
 		if (exit == NULL) {
-			/*
+			
 			uint32_t red = (rand() % 255) << 16;
 			uint16_t green = (rand() % 255) << 8;
 			uint8_t  blue = (rand() % 255) << 0;
-			*/
-			color = 0x00ff00;
+			
+			color = red + green + blue;
 		}
 		else {
 			color = exit->color;
@@ -79,6 +79,8 @@ public:
 	}
 	//TODO: write proper destructor because we are creating "new" PortalSides in createFragment
 
-	std::list <DrawableEdge> draw();
+	std::vector <DrawableEdge> draw();
 };
+
+Vector rotate(Vector v, double angle);
 

@@ -1,39 +1,63 @@
 #include "portalgon.h"
 
 
-void Fragment::createFragment(){
+Portalgon createPortalgon(){
+	Fragment * f =  new Fragment();
 	//Put some points in the polygon
-	p.push_back(Point(0, 0));
-	p.push_back(Point(4, 0));
-	p.push_back(Point(4, 4));
-	p.push_back(Point(2, 2));
-	p.push_back(Point(0, 4));
+	f->p.push_back(Point(0, 0));
+	f->p.push_back(Point(4, 0));
+	f->p.push_back(Point(4, 4));
+	f->p.push_back(Point(0, 4));
 	
 	// create 2 portal edges connected to eachother:
-	PortalSide * e1 = new PortalSide(0, this);
-	PortalSide * e2 = new PortalSide(3, this, e1);
-	e1->exit = e2;
+	PortalSide * e1 = new PortalSide(1, f);
+	PortalSide * e2 = new PortalSide(3, f);
+	 
 
-	portals.push_back(*e1);
-	portals.push_back(*e2);
+	Fragment * f2 = new Fragment();
+	//Put some points in the polygon
+	f2->p.push_back(Point(7, 0));
+	f2->p.push_back(Point(10, 0));
+	f2->p.push_back(Point(10, 5));
+	f2->p.push_back(Point(7, 5));
+
+	PortalSide * e3 = new PortalSide(3, f2, e1, false, true);
+	PortalSide * e4 = new PortalSide(0, f2, e2, false, true);
+	e1->exit = e3;
+	e2->exit = e4;
+	f->portals.push_back(*e1);
+	f->portals.push_back(*e2);
+	f2->portals.push_back(*e3);
+	f2->portals.push_back(*e4);
+	std::vector<Fragment> fragments;
+	fragments.push_back(*f);
+	fragments.push_back(*f2);
+	return Portalgon(fragments);
 }
 
 
-std::list < DrawableEdge> PortalSide::draw() {
-	std::list < DrawableEdge> toDraw;
+std::vector < DrawableEdge> PortalSide::draw() {
+	std::vector < DrawableEdge> toDraw;
 	
 	Fragment temp1 = * parent;
 	Polygon temp2 = parent->p;
 	Segment edge = parent->p.edge(id);
 	//draw arrow
 	toDraw.push_back({ edge, color });
-	toDraw.push_back({ Segment(edge.target(), edge.target() + edge.to_vector()), color });
+	if (!flipped) {
+		toDraw.push_back({ Segment(edge.target(), edge.target() - (0.05 * rotate(edge.to_vector(), 0.3))), color });
+		toDraw.push_back({ Segment(edge.target(), edge.target() - (0.05 * rotate(edge.to_vector(), -0.3))), color });
+	}
+	else {
+		toDraw.push_back({ Segment(edge.source(), edge.source() + (0.05 * rotate(edge.to_vector(), 0.3))), color });
+		toDraw.push_back({ Segment(edge.source(), edge.source() + (0.05 * rotate(edge.to_vector(), -0.3))), color });
+	}
 	return toDraw;
 	
 }
 
-std::list <DrawableEdge> Fragment::draw() {
-	std::list < DrawableEdge> toDraw;
+std::vector <DrawableEdge> Fragment::draw() {
+	std::vector < DrawableEdge> toDraw;
 
 	for (Polygon::Edge_const_iterator sit = p.edges_begin(); sit != p.edges_end(); ++sit)
 	{
@@ -42,7 +66,27 @@ std::list <DrawableEdge> Fragment::draw() {
 	
 	for each (PortalSide portalside in portals)
 	{
-		toDraw.splice(toDraw.end(), portalside.draw());
+
+		std::vector < DrawableEdge> temp = portalside.draw();
+		toDraw.insert(toDraw.end(), temp.begin(), temp.end());
 	}
 	return toDraw;
 }
+
+Vector rotate(Vector v, double angle) {
+	Vector v2 = Vector(v.x() * cos(angle) - v.y() * sin(angle), v.x() * sin(angle) + v.y() * cos(angle));
+	return v2;
+}
+
+
+std::vector <DrawableEdge> Portalgon::draw() {
+
+	std::vector < DrawableEdge> toDraw;
+	for each (Fragment f in fragments)
+	{
+		std::vector < DrawableEdge> temp = f.draw();
+		toDraw.insert(toDraw.end(), temp.begin(), temp.end());
+	}
+	return toDraw;
+}
+ 

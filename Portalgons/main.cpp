@@ -26,10 +26,8 @@
 
 // Main code
 int main(int, char**) {
-	Fragment f = Fragment();
-	f.createFragment();
-	Polygon p = f.p;
-	std::list<DrawableEdge> drawlist = f.draw();
+	Portalgon p = createPortalgon();
+	std::vector<DrawableEdge> drawlist = p.draw();
 
 	//Window:
 	SDL_Init(SDL_INIT_EVERYTHING);
@@ -74,7 +72,7 @@ int main(int, char**) {
 	float camx = 0.0f;
 	float camy = 0.0f;
 
-	float scale = 100.0f;
+	float scale = 50.0f;
 
 	bool dragging = false;
 
@@ -141,8 +139,13 @@ int main(int, char**) {
 
 		renderer.new_frame();
 
-		ImGui::ShowDemoWindow();
+		ImGui::Begin("Config");
 
+		static bool invertYbool = true;
+		ImGui::Checkbox("Invert Y Axis", &invertYbool);
+		ImGui::End();
+
+		int invertY = (invertYbool) ? -1 : 1;
 		if (scale > 1000.0f) {
 			scale = 1000.0f;
 		}
@@ -151,19 +154,15 @@ int main(int, char**) {
 		}
 
 		glm::mat4 const proj =
-			glm::ortho<float>(-width / 2, width / 2, -height / 2, height / 2, -1, 1);
+			glm::ortho<float>(-width / 2, width / 2, height / 2, -height / 2, -1, 1);
 		glm::mat4 view =
-			glm::scale(glm::mat4(1.0f), glm::vec3(scale, -scale, 1.0f)) *
-			glm::translate(glm::mat4(1.0f), glm::vec3(camx, camy, 1.0f));
+			glm::scale(glm::mat4(1.0f), glm::vec3(scale, invertY * scale, 1.0f)) *
+			glm::translate(glm::mat4(1.0f), glm::vec3(camx, invertY * camy, 1.0f));
 
 		// Add your drawing code here.
 		for each (auto e in drawlist) {
 			renderer.add_line(e.edge, e.color);
 		}
-		renderer.add_line(Point(100.0f, 10.0f), Point(5.0f, 25.0f), 0xffffff00);
-		renderer.add_line(glm::vec2(1.0f, 10.0f), glm::vec2(4.0f, 25.0f), 0xffff0000);
-		renderer.add_line(glm::vec2(2.0f, 10.0f), glm::vec2(8.0f, 25.0f), 0xffff0000);
-		renderer.add_line(glm::vec2(3.0f, 10.0f), glm::vec2(12.0f, 25.0f), 0xffff0000);
 
 		renderer.draw(proj, view, ImGui::GetBackgroundDrawList());
 
