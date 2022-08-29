@@ -12,7 +12,6 @@
 
 #include <backends/imgui_impl_sdl.h>
 #include <backends/imgui_impl_opengl3.h>
-
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <SDL_opengles2.h>
 #else
@@ -20,15 +19,28 @@
 #endif
 
 #include "portalgon.h"
-
 #include "renderer.h"
+#include "Raytracer.h"
 
+template <class T> T pi();
 
 // Main code
 int main(int, char**) {
+	/*
+		SETUP
+	*/
 	Portalgon p = createPortalgon();
 	std::vector<DrawableEdge> drawlist = p.draw();
-
+	double step = 3.1415926535897931 * 2 / 20;
+	for (int i = 0; i < 20; i++)
+	{
+		double angle =  step * i;
+		Raytracer r = Raytracer(1, 0.5);
+		drawlist.push_back({ r.castRay(p, Direction(sin(angle), cos(angle))), 0x000 });
+	}
+	/*
+		SDL stuff
+	*/
 	//Window:
 	SDL_Init(SDL_INIT_EVERYTHING);
 
