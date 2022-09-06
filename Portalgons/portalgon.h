@@ -25,7 +25,7 @@ struct DrawableEdge {
 class Fragment {
 public:
 	Polygon p;
-	std::vector<PortalSide> portals;
+	std::vector<boost::optional<PortalSide>> portals;
 
 	Fragment() {
 		p = Polygon();
@@ -78,6 +78,10 @@ public:
 
 	}
 	//TODO: write proper destructor because we are creating "new" PortalSides in createFragment
+
+	Segment getSegment() {
+		return parent->p.edge(id);
+	}
 
 	std::vector <DrawableEdge> draw();
 };

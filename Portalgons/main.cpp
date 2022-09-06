@@ -21,8 +21,8 @@
 #include "portalgon.h"
 #include "renderer.h"
 #include "Raytracer.h"
+#include <CGAL/Gmpq.h>
 
-template <class T> T pi();
 
 // Main code
 int main(int, char**) {
@@ -31,12 +31,15 @@ int main(int, char**) {
 	*/
 	Portalgon p = createPortalgon();
 	std::vector<DrawableEdge> drawlist = p.draw();
-	double step = 3.1415926535897931 * 2 / 20;
-	for (int i = 0; i < 20; i++)
+	std::vector<PathSegment> raysegs;
+	double step = PI * 2 / 50;
+	float stepsize = 0.1f;
+	Raytracer r = Raytracer(2.5, 2, 1);
+	for (int i = 0; i < 50; i++)
 	{
 		double angle =  step * i;
-		Raytracer r = Raytracer(1, 0.5);
-		drawlist.push_back({ r.castRay(p, Direction(sin(angle), cos(angle))), 0x000 });
+		PathSegment rayseg = r.castRaySegment(p, Direction(sin(angle), cos(angle)), stepsize);
+		raysegs.push_back(rayseg);
 	}
 	/*
 		SDL stuff
@@ -44,8 +47,8 @@ int main(int, char**) {
 	//Window:
 	SDL_Init(SDL_INIT_EVERYTHING);
 
-	int const width = 0.8 * 1920;
-	int const height = 0.9 * 1080;
+	int const width = int(0.8 * 1920);
+	int const height = int(0.9 * 1080);
 
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
@@ -150,11 +153,30 @@ int main(int, char**) {
 		ImGui::NewFrame();
 
 		renderer.new_frame();
-
+		
+		
+		//User interface
 		ImGui::Begin("Config");
 
 		static bool invertYbool = true;
 		ImGui::Checkbox("Invert Y Axis", &invertYbool);
+		std::vector<PathSegment> newraysegs;
+		if (ImGui::Button("Propagate"))
+		{
+			for each (PathSegment rs in raysegs)
+			{
+				if (!rs.closed) {
+					std::vector<PathSegment> newsegments = r.expandRay(rs, p, stepsize);
+					newraysegs.insert(newraysegs.end(), newsegments.begin(), newsegments.end());
+				}
+				else {
+					newraysegs.push_back(rs);
+				}
+				
+			}
+			raysegs = newraysegs;
+		}
+
 		ImGui::End();
 
 		int invertY = (invertYbool) ? -1 : 1;
@@ -165,6 +187,7 @@ int main(int, char**) {
 			scale = 1.0f;
 		}
 
+		//Render the geometry
 		glm::mat4 const proj =
 			glm::ortho<float>(-width / 2, width / 2, height / 2, -height / 2, -1, 1);
 		glm::mat4 view =
@@ -174,6 +197,9 @@ int main(int, char**) {
 		// Add your drawing code here.
 		for each (auto e in drawlist) {
 			renderer.add_line(e.edge, e.color);
+		}
+		for each (auto e in raysegs) {
+			renderer.add_line(e.segment, 0x0);
 		}
 
 		renderer.draw(proj, view, ImGui::GetBackgroundDrawList());
