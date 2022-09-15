@@ -6,9 +6,9 @@ Portalgon createPortalgon(){
 	//Put some points in the polygon
 	//TODO: Add functions to Fragment to add polygon and automatically resize portals vector accordingly, set portalsides etc.
 	f->p.push_back(Point(-1, 0));
-	f->p.push_back(Point(4, 0));
-	f->p.push_back(Point(4, 4));
-	f->p.push_back(Point(0, 4));
+	f->p.push_back(Point(3, 0));
+	f->p.push_back(Point(3, 3));
+	f->p.push_back(Point(-1, 3));
 
 	f->portals.resize(f->p.edges().size());
 	// create 2 portal edges connected to eachother:
@@ -18,10 +18,10 @@ Portalgon createPortalgon(){
 
 	Fragment * f2 = new Fragment();
 	//Put some points in the polygon
-	f2->p.push_back(Point(7, 0));
-	f2->p.push_back(Point(10, 0));
-	f2->p.push_back(Point(10, 5));
-	f2->p.push_back(Point(9, 5));
+	f2->p.push_back(Point(9, 0));
+	f2->p.push_back(Point(20, -5));
+	f2->p.push_back(Point(20, 15));
+	f2->p.push_back(Point(9, 6));
 	f2->portals.resize(f2->p.edges().size());
 
 	PortalSide * e3 = new PortalSide(3, f2, e1, false, true);

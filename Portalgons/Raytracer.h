@@ -19,6 +19,7 @@ struct PathSegment {
 	Segment segment;
 	double speed;
 	bool closed;
+	Segment intersected = Segment();
 };
 
 class Raytracer
@@ -33,7 +34,7 @@ public:
 	Segment intersect(Ray ray, Segment segment);
 	Segment intersect(Ray ray, Portalgon& p);
 	std::vector<PathSegment> expandRay(PathSegment rayseg, Portalgon& portalgon, double stepsize);
-	Segment intersect(Segment rayseg, Segment seg);
+	Segment intersect(PathSegment rayseg, Segment *seg);
 
 	Segment castRay(Portalgon& p, Direction direction);
 	PathSegment castRaySegment(Portalgon& p, Direction direction, double stepsize);

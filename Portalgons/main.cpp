@@ -32,10 +32,11 @@ int main(int, char**) {
 	Portalgon p = createPortalgon();
 	std::vector<DrawableEdge> drawlist = p.draw();
 	std::vector<PathSegment> raysegs;
-	double step = PI * 2 / 50;
-	float stepsize = 0.1f;
-	Raytracer r = Raytracer(2.5, 2, 1);
-	for (int i = 0; i < 50; i++)
+	int amount_of_steps = 90;
+	double step = PI * 2 / amount_of_steps;
+	float stepsize = 0.2f;
+	Raytracer r = Raytracer(12, 1, 1);
+	for (int i = 0; i < amount_of_steps; i++)
 	{
 		double angle =  step * i;
 		PathSegment rayseg = r.castRaySegment(p, Direction(sin(angle), cos(angle)), stepsize);
