@@ -23,30 +23,35 @@
 #include "Raytracer.h"
 #include <CGAL/Gmpq.h>
 
+#include "ipe_parser.h"
+#include <map>
+#include <sstream>
 
 // Main code
 int main(int, char**) {
+
 	/*
 		SETUP
 	*/
-	Portalgon p = createPortalgon();
+	Portalgon p = createPortalgonFromIpe("ipe/test3.ipe");
 	std::vector<DrawableEdge> drawlist = p.draw();
 	std::vector<PathSegment> raysegs;
-	int amount_of_steps = 90;
+	int amount_of_steps = 100;
 	double step = PI * 2 / amount_of_steps;
-	float stepsize = 0.2f;
-	Raytracer r = Raytracer(12, 1, 1);
+	float stepsize = 1.0f;
+	Raytracer r = Raytracer(416, 336, 10.0, stepsize);
 	for (int i = 0; i < amount_of_steps; i++)
 	{
-		double angle =  step * i;
-		PathSegment rayseg = r.castRaySegment(p, Direction(sin(angle), cos(angle)), stepsize);
+		double angle =  step * i - 0.3;
+
+		PathSegment rayseg = r.castRaySegment(p, Direction(cos(angle), sin(angle)));
 		raysegs.push_back(rayseg);
 	}
 	/*
 		SDL stuff
 	*/
 	//Window:
-	SDL_Init(SDL_INIT_EVERYTHING);
+	SDL_Init(SDL_INIT_EVERYTHING); 
 
 	int const width = int(0.8 * 1920);
 	int const height = int(0.9 * 1080);
@@ -85,10 +90,10 @@ int main(int, char**) {
 
 	glViewport(0, 0, width, height);
 
-	float camx = 0.0f;
-	float camy = 0.0f;
+	float camx = -200.0f;
+	float camy = 500.0f;
 
-	float scale = 50.0f;
+	float scale = 1.0f;
 
 	bool dragging = false;
 
@@ -108,7 +113,7 @@ int main(int, char**) {
 			}
 
 			switch (event.type) {
-			case SDL_QUIT: {
+			case SDL_QUIT: { 
 				done = true;
 			}
 			case SDL_KEYDOWN: {
@@ -166,8 +171,11 @@ int main(int, char**) {
 		{
 			for each (PathSegment rs in raysegs)
 			{
+				/*for each (PathSegment rs2 in raysegs) {
+					r.collideRaySegs(&rs, &rs2);
+				}*/
 				if (!rs.closed) {
-					std::vector<PathSegment> newsegments = r.expandRay(rs, p, stepsize);
+					std::vector<PathSegment> newsegments = r.expandRay(rs, p);
 					newraysegs.insert(newraysegs.end(), newsegments.begin(), newsegments.end());
 				}
 				else {
@@ -184,8 +192,8 @@ int main(int, char**) {
 		if (scale > 1000.0f) {
 			scale = 1000.0f;
 		}
-		if (scale < 1.0f) {
-			scale = 1.0f;
+		if (scale < 0.5f) {
+			scale = 0.5f;
 		}
 
 		//Render the geometry

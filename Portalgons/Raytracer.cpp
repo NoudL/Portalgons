@@ -2,10 +2,11 @@
 #include <iostream>
 constexpr bool GLOBAL_DISTANCE = true;
 
-Raytracer::Raytracer(double x, double y, double initialspeed)
+Raytracer::Raytracer(double x, double y, double initialspeed, double stepsize)
 {
 	source = Point(x, y);
 	this->initialspeed = initialspeed;
+	this->stepsize = stepsize;
 }
 
 Segment Raytracer::intersect(Ray ray, Segment seg) {
@@ -28,9 +29,9 @@ Segment Raytracer::intersect(Ray ray, Segment seg) {
 
 Segment Raytracer::intersect(Ray ray, Portalgon& portalgon) {
 	Segment result(Point(0,0), Point(100000,100000)); //TODO: more elegant
-	for each (Fragment frag in portalgon.fragments)
+	for each (Fragment * frag in portalgon.fragments)
 	{
-		for (Polygon::Edge_const_iterator sit = frag.p.edges_begin(); sit != frag.p.edges_end(); ++sit)
+		for (Polygon::Edge_const_iterator sit = frag->p.edges_begin(); sit != frag->p.edges_end(); ++sit)
 		{
 			Segment s = intersect(ray, *sit);
 			if (s.squared_length() != 0 && s.squared_length() < result.squared_length() ){
@@ -61,30 +62,35 @@ Segment Raytracer::intersect(PathSegment ray_path_seg, Segment *seg) {
 }
 
 
-std::vector<PathSegment> Raytracer::expandRay(PathSegment rayseg, Portalgon& portalgon, double stepsize) {
+std::vector<PathSegment> Raytracer::expandRay(PathSegment rayseg, Portalgon& portalgon) {
 	if (rayseg.closed) {
 		return { rayseg };
 	}
 	if (rayseg.segment.target().x() != rayseg.segment.target().x()) {
 		int hetgaatmis = 1;
 	}
+	rayseg.age += 1;
 	//First lengthen the rayseg with length of stepsize / speed:
 	Segment newseg = Segment(rayseg.segment.source(), rayseg.segment.target() + (rayseg.segment.to_vector() / (sqrt(rayseg.segment.squared_length()))) * stepsize * rayseg.speed);
 	bool closed = false;
 	std::vector<PathSegment> result = { {newseg, rayseg.speed, closed, rayseg.intersected} };
-	for each (Fragment frag in portalgon.fragments)
+	result[0].age = rayseg.age;
+	for each (Fragment * frag in portalgon.fragments)
 	{
 		int index = 0;
-		for each(Segment edge in frag.p.edges())
+		for each(Segment edge in frag->p.edges())
 		{
 			Segment s = intersect(result[0], &edge);
 			if (s.squared_length() < result[0].segment.squared_length()) {
 				result = { {s, rayseg.speed, true, rayseg.intersected} };
+				result[0].age = rayseg.age;
 
 				//check if it was a portalside, if so, create new segment as extension on other side of portal:
-				if (frag.portals[index]) {
-					PortalSide portalside = boost::get<PortalSide>(frag.portals[index]);
+				if (frag->portals[index]) {
+					PortalSide portalside = boost::get<PortalSide>(frag->portals[index]);
 					result = { {s, rayseg.speed, true, rayseg.intersected}, extendThroughPortal({s, rayseg.speed, closed}, newseg, portalside) };
+					result[0].age = rayseg.age;
+					result[1].age = rayseg.age;
 				}
 			}
 			
@@ -126,13 +132,13 @@ PathSegment Raytracer::extendThroughPortal(PathSegment intersected, Segment orig
 	}
 
 	double speed = intersected.speed;
+	double old_speed = speed;
 	RT portal_ratio = sqrt(exit.squared_length() / entry.squared_length());
 	RT portal_angle = atan2(exit_vec.y(), exit_vec.x()) - atan2(entry_vec.y(), entry_vec.x());
 	//RT portal_angle = acos((entry_vec * exit_vec) / sqrt(entry.squared_length() * exit.squared_length()));
 
 	
 	Segment just_the_tip = Segment();
-	
 	Transformation rotate(CGAL::ROTATION, sin(portal_angle), cos(portal_angle));
 
 	Vector tippy = original.to_vector() - intersected.segment.to_vector();	
@@ -144,9 +150,12 @@ PathSegment Raytracer::extendThroughPortal(PathSegment intersected, Segment orig
 	}
 	else {
 		Vector normal = Vector(entry_vec.y(), -entry_vec.x()); //normal vector pointing towards the portal
-		if (portal.flipped) {
+		if (original.to_vector() * normal < 0) {
 			normal *= -1;
 		}
+		/*if (portal.flipped == portal.exit->flipped) {
+			normal *= -1;
+		}*/
 		RT normal_angle = atan2(normal.y(), normal.x());
 		
 		RT ray_angle = atan2(original.to_vector().y(), original.to_vector().x());
@@ -169,12 +178,7 @@ PathSegment Raytracer::extendThroughPortal(PathSegment intersected, Segment orig
 		}
 		RT outgoing_angle = asin(sin_outgoing);
 		RT rotate_angle = -(outgoing_angle - incoming_angle);
-		/*while (rotate_angle >= 2 * PI) {
-			rotate_angle -= 2* PI;
-		}
-		while (rotate_angle <= 2 * -PI) {
-			rotate_angle += 2*PI;
-		}*/
+
 		Transformation rotate_global(CGAL::ROTATION, sin(rotate_angle), cos(rotate_angle));
 		tippy = rotate_global(tippy);	
 		if (tippy.x() != tippy.x()) {
@@ -182,13 +186,39 @@ PathSegment Raytracer::extendThroughPortal(PathSegment intersected, Segment orig
 		}
 	}
 
-	just_the_tip = Segment(exit_point, exit_point + tippy * speed);
+	if (!(portal.flipped ^ portal.exit->flipped)) {
+		Transformation reflect(CGAL::REFLECTION, Line(Point(0, 0), exit_vec));
+		tippy = reflect(tippy);
+	}
+	just_the_tip = Segment(exit_point, exit_point + tippy * (speed / old_speed) * stepsize);
 	if (just_the_tip.target().x() != just_the_tip.target().x()) {
 		int hetgaatmis = 1;
 	}
 
 
 	return { just_the_tip, speed, false, exit };
+}
+
+// Very rough way to visualize wavefront collision?
+void Raytracer::collideRaySegs(PathSegment* a, PathSegment* b) {
+	if (a->closed) {
+		return;
+	}
+	const auto result = intersection(a->segment, b->segment);
+	if (result) {
+		if (const Segment* s = boost::get<Segment>(&*result)) {
+			return;
+		}
+		else {
+			const Point* p = boost::get<Point >(&*result);
+			if (*p == a->segment.source()) {
+				return;
+			}
+		}
+		a->closed = true;
+		b->closed = true;
+	}
+	return;
 }
 
 
@@ -202,7 +232,7 @@ Segment Raytracer::castRay(Portalgon& p, Direction direction) {
 
 	@param direction Assume normalized direction 
 */
-PathSegment Raytracer::castRaySegment(Portalgon& p, Direction direction, double stepsize) {
+PathSegment Raytracer::castRaySegment(Portalgon& p, Direction direction) {
 	Segment rayseg = Segment(source, source + (direction.to_vector() * stepsize * initialspeed));
 	return { rayseg, initialspeed, false };
 }

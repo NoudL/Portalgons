@@ -5,6 +5,7 @@
 #include <CGAL/Point_2.h>
 #include <CGAL/Vector_2.h>
 #include <CGAL/Segment_2.h>
+#include "ipe_parser.h"
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel	K;
 typedef CGAL::Polygon_2<K>                                  Polygon;
@@ -37,30 +38,31 @@ public:
 
 class Portalgon {
 public:
-	std::vector <Fragment> fragments;
-
-	Portalgon(std::vector<Fragment> f) {
+	std::vector <Fragment *> fragments;
+	
+	Portalgon(std::vector<Fragment *> f) {
 		fragments = f;
 	}
 
+
 	std::vector < DrawableEdge > draw();
+	//void addPortal(std::vector<Point> line, color);
 };
 
 Portalgon createPortalgon();
+Portalgon createPortalgonFromIpe(std::string file_name);
 
 
 class PortalSide {
 public:
 	int id;
-	bool orientation;
-	bool flipped;
+	bool flipped; //if true: arrow points anti clockwise (like the fragment is defined)
 	Fragment * parent;
 	PortalSide * exit;
 	uint32_t color;
 
-	PortalSide(int id, Fragment * parent, PortalSide * exit = NULL, bool orientation = false, bool flipped = false) {
+	PortalSide(int id, Fragment * parent, PortalSide * exit = NULL, bool flipped = false) {
 		this->id = id;
-		this->orientation = orientation;
 		this->flipped = flipped;
 		this->parent = parent;
 		this->exit = exit;
@@ -77,14 +79,20 @@ public:
 		}
 
 	}
+
+	PortalSide() {
+
+	};
 	//TODO: write proper destructor because we are creating "new" PortalSides in createFragment
 
 	Segment getSegment() {
 		return parent->p.edge(id);
 	}
 
+
 	std::vector <DrawableEdge> draw();
 };
 
 Vector rotate(Vector v, double angle);
 
+void makePortalSide(Segment seg, uint32_t color, std::vector<Fragment *> fragments, PortalSide * e);
