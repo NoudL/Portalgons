@@ -1,6 +1,17 @@
 #include "portalgon.h"
 #include <sstream>
 using namespace std;
+
+Portalgon createPortalgonFromGraphml(string file_name) {
+	vector<vector<double>> path = parseGraphmlFile(file_name);
+	Fragment *f = new Fragment();
+	for (vector<double> point : path) {
+		f->p.push_back(Point(point[0],point[1]));
+	}
+	f->portals.resize(f->p.edges().size());
+	return Portalgon({ f });
+}
+
 Portalgon createPortalgonFromIpe(string file_name) {
 	vector<vector<vector<double>>> paths;
 	vector< pair < vector<vector<double>>, string> > portals;
@@ -193,6 +204,18 @@ std::vector <DrawableEdge> Fragment::draw() {
 }
 
 
+std::vector < DrawableEdge > Fragment::drawCDT() {
+	std::vector < DrawableEdge> toDraw;
+
+	for (CDT::Finite_edges_iterator sit = cdt.finite_edges_begin(); sit != cdt.finite_edges_end(); ++sit)
+	{
+		Segment edge = cdt.segment(sit);
+		toDraw.push_back({ edge, 0x0 });
+	}
+	return toDraw;
+}
+
+
 
 Vector rotate(Vector v, double angle) {
 	Vector v2 = Vector(v.x() * cos(angle) - v.y() * sin(angle), v.x() * sin(angle) + v.y() * cos(angle));
@@ -206,6 +229,17 @@ std::vector <DrawableEdge> Portalgon::draw() {
 	for each (Fragment * f in fragments)
 	{
 		std::vector < DrawableEdge> temp = f->draw();
+		toDraw.insert(toDraw.end(), temp.begin(), temp.end());
+	}
+	return toDraw;
+}
+
+std::vector < DrawableEdge > Portalgon::drawCDTs() {
+
+	std::vector < DrawableEdge> toDraw;
+	for each (Fragment * f in fragments)
+	{
+		std::vector < DrawableEdge> temp = f->drawCDT();
 		toDraw.insert(toDraw.end(), temp.begin(), temp.end());
 	}
 	return toDraw;

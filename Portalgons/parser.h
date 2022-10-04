@@ -10,5 +10,6 @@ void parseIpeFile(std::string file_name,
 	std::vector<std::vector<double>> * portal_transformations);
 
 
+std::vector<std::vector<double>> parseGraphmlFile(std::string file_name);
 std::map<std::string, uint32_t> getColorsFromFile(std::string file_name);
 uint32_t RGB_to_BGR_hex(double _R, double _G, double _B);

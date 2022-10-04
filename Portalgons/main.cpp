@@ -23,7 +23,7 @@
 #include "Raytracer.h"
 #include <CGAL/Gmpq.h>
 
-#include "ipe_parser.h"
+#include "parser.h"
 #include <map>
 #include <sstream>
 
@@ -33,13 +33,18 @@ int main(int, char**) {
 	/*
 		SETUP
 	*/
-	Portalgon p = createPortalgonFromIpe("ipe/test3.ipe");
+	Portalgon p = createPortalgonFromGraphml("Salzburg/fpg/fpg-poly_0000000010.graphml");
+	//Portalgon p = createPortalgonFromGraphml("Salzburg/spg-a-2opt/spg-a-poly_0002000_1.graphml");
+	//Portalgon p = createPortalgonFromIpe("ipe/test4.ipe");
+	//Portalgon p = createPortalgonFromIpe("ipe/test3.ipe");
+	//Portalgon p = createPortalgonFromIpe("ipe/triangulation_test.ipe");
 	std::vector<DrawableEdge> drawlist = p.draw();
+	std::vector<DrawableEdge> drawCDTlist;
 	std::vector<PathSegment> raysegs;
-	int amount_of_steps = 100;
+	int amount_of_steps = 50;
 	double step = PI * 2 / amount_of_steps;
 	float stepsize = 1.0f;
-	Raytracer r = Raytracer(416, 336, 10.0, stepsize);
+	Raytracer r = Raytracer(320, 576, 10.0, stepsize);
 	for (int i = 0; i < amount_of_steps; i++)
 	{
 		double angle =  step * i - 0.3;
@@ -166,6 +171,8 @@ int main(int, char**) {
 
 		static bool invertYbool = true;
 		ImGui::Checkbox("Invert Y Axis", &invertYbool);
+		static bool drawCDT = false;
+		ImGui::Checkbox("Draw Constrained Delaunay Triangulation", &drawCDT);
 		std::vector<PathSegment> newraysegs;
 		if (ImGui::Button("Propagate"))
 		{
@@ -203,7 +210,17 @@ int main(int, char**) {
 			glm::scale(glm::mat4(1.0f), glm::vec3(scale, invertY * scale, 1.0f)) *
 			glm::translate(glm::mat4(1.0f), glm::vec3(camx, invertY * camy, 1.0f));
 
+		if (drawCDT) {
+			drawCDTlist = p.drawCDTs();
+		}
+		else {
+			drawCDTlist = {};
+		}
+
 		// Add your drawing code here.
+		for each (auto e in drawCDTlist) {
+			renderer.add_line(e.edge, 0x0000FF);
+		}
 		for each (auto e in drawlist) {
 			renderer.add_line(e.edge, e.color);
 		}

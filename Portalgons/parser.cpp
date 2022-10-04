@@ -1,6 +1,68 @@
-#include "ipe_parser.h"
+#include "parser.h"
 #include <sstream>
 #include <iostream>
+
+std::vector<std::vector<double>> parseGraphmlFile(std::string file_name) {
+	rapidxml::file<> f_doc(file_name.c_str());
+	rapidxml::file<> xmlFile(f_doc);
+	rapidxml::xml_document<> doc;
+	doc.parse<0>(xmlFile.data());
+
+	rapidxml::xml_node<>* graph = doc.first_node("graphml")->first_node("graph");
+
+	
+	//not sure if Graphml format always has its point ids in order so:
+	int amount_of_points = 0;
+	for (rapidxml::xml_node<> *child = graph->first_node("node"); child != NULL; child = child->next_sibling("node"))
+	{
+		amount_of_points++;
+	}
+
+	std::vector<std::vector<double>> points;
+	points.assign(amount_of_points, { 0.0,0.0 });
+	rapidxml::xml_node<>* node = graph->first_node("node");
+
+	while (node != NULL) {
+		int index = std::stoi(node->first_attribute("id")->value());
+		double x = std::stod(node->first_node("data")->value());
+		double y = std::stod(node->first_node("data")->next_sibling("data")->value());
+		points[index] = { x, y };
+		node = node->next_sibling("node");
+	}
+
+	rapidxml::xml_node<>* edge = graph->first_node("edge");
+	std::vector<int> edges;
+	edges.assign(amount_of_points, -1);
+	int first = -1;
+	while (edge != NULL) {
+		int source = std::stoi(edge->first_attribute("source")->value());
+		if (first == -1) {
+			first = source;
+		}
+		int target = std::stoi(edge->first_attribute("target")->value());
+		if (edges[source] == -1) {
+			edges[source] = target;
+		}
+		else {
+			edges[target] = source;
+		}
+		edge = edge->next_sibling("edge");
+	}
+
+	std::vector<std::vector<double>> path;
+	path.assign(amount_of_points, { 0.0, 0.0 });
+
+	int cur_point = 0;
+	path[cur_point] = points[first];
+	for (int i = 1; i < amount_of_points; i++)
+	{
+		path[i] = points[edges[cur_point]];
+		cur_point = edges[cur_point];
+	}
+
+	return path;
+}
+
 
 void parseIpeFile(std::string file_name, 
 				std::vector<std::vector<std::vector<double>>> * paths,
